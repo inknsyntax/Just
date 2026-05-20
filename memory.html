@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memory — Just.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<style>
+  .board {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    max-width: 400px;
+    margin: 0 auto 1.5rem;
+  }
+  .card {
+    aspect-ratio: 1;
+    cursor: pointer;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.35s;
+    border-radius: 4px;
+  }
+  .card.flipped, .card.matched { transform: rotateY(180deg); }
+  .card-face {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 4px;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .card-back {
+    background: var(--tag);
+    border: 1px solid var(--border);
+    font-size: 1.2rem;
+  }
+  .card-front {
+    background: var(--card);
+    border: 1px solid var(--border);
+    font-size: 2rem;
+    transform: rotateY(180deg);
+  }
+  .card.matched .card-front { background: var(--bg2); opacity: 0.6; }
+</style>
+</head>
+<body>
+<header>
+  <a href="../index.html" class="back">← Back</a>
+  <a href="../index.html" class="logo">Just<em>.</em></a>
+  <div class="header-right">
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">Dark</button>
+  </div>
+</header>
+
+<div class="game-container">
+  <div class="game-title">Memory</div>
+  <div class="status-bar">
+    <span>Moves</span><span class="status-val" id="moves">0</span>
+    <span>Pairs</span><span class="status-val" id="pairs">0</span><span>/ 8</span>
+  </div>
+
+  <div class="board" id="board"></div>
+  <div class="msg" id="msg"></div>
+
+  <div style="text-align:center">
+    <button class="btn btn-outline" onclick="newGame()">New Game</button>
+  </div>
+</div>
+
+<script>
+const EMOJIS = ['🦊','🐙','🦋','🌵','🍄','🎸','🔮','🦜'];
+let cards, flipped, matched, moves, lock;
+
+function newGame(){
+  const deck = [...EMOJIS,...EMOJIS].sort(()=>Math.random()-0.5);
+  cards = deck.map((e,i)=>({id:i,emoji:e,flipped:false,matched:false}));
+  flipped=[]; matched=0; moves=0; lock=false;
+  document.getElementById('moves').textContent=0;
+  document.getElementById('pairs').textContent=0;
+  document.getElementById('msg').textContent='';
+  document.getElementById('msg').className='msg';
+  render();
+}
+
+function flip(i){
+  if(lock||cards[i].flipped||cards[i].matched) return;
+  cards[i].flipped=true;
+  flipped.push(i);
+  render();
+  if(flipped.length===2){
+    moves++;
+    document.getElementById('moves').textContent=moves;
+    const [a,b]=flipped;
+    if(cards[a].emoji===cards[b].emoji){
+      cards[a].matched=cards[b].matched=true;
+      matched++;
+      document.getElementById('pairs').textContent=matched;
+      flipped=[];
+      if(matched===EMOJIS.length){
+        const msg=document.getElementById('msg');
+        msg.textContent=`Done in ${moves} moves.`;
+        msg.className='msg win';
+      }
+      render();
+    } else {
+      lock=true;
+      setTimeout(()=>{
+        cards[a].flipped=cards[b].flipped=false;
+        flipped=[]; lock=false; render();
+      },900);
+    }
+  }
+}
+
+function render(){
+  const b=document.getElementById('board');
+  b.innerHTML=cards.map((c,i)=>`
+    <div class="card${c.flipped||c.matched?' flipped':''} ${c.matched?'matched':''}" onclick="flip(${i})">
+      <div class="card-face card-back">·</div>
+      <div class="card-face card-front">${c.emoji}</div>
+    </div>
+  `).join('');
+}
+
+const saved = localStorage.getItem('just-theme');
+if (saved === 'dark') { document.documentElement.setAttribute('data-theme','dark'); document.getElementById('themeBtn').textContent='Light'; }
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+  if(isDark){document.documentElement.removeAttribute('data-theme');document.getElementById('themeBtn').textContent='Dark';localStorage.setItem('just-theme','light');}
+  else{document.documentElement.setAttribute('data-theme','dark');document.getElementById('themeBtn').textContent='Light';localStorage.setItem('just-theme','dark');}
+}
+
+newGame();
+</script>
+</body>
+</html>

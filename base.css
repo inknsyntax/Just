@@ -1,0 +1,147 @@
+/* Just. — shared game styles */
+:root {
+  --bg: #f5f2eb;
+  --bg2: #eceadf;
+  --text: #1a1814;
+  --text2: #6b6860;
+  --accent: #2b2926;
+  --card: #fff;
+  --border: #d8d5cc;
+  --hover: #f0ede4;
+  --tag: #e8e4d9;
+  --tag-text: #4a4840;
+  --green: #3a7a4a;
+  --yellow: #b07830;
+  --red: #b03030;
+}
+[data-theme="dark"] {
+  --bg: #141310;
+  --bg2: #1c1a17;
+  --text: #f0ede4;
+  --text2: #9a9690;
+  --accent: #e8e4d9;
+  --card: #201e1b;
+  --border: #2e2c28;
+  --hover: #272420;
+  --tag: #2a2820;
+  --tag-text: #b0ac9f;
+  --green: #5aaa6a;
+  --yellow: #d09a50;
+  --red: #cc5050;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'DM Mono', monospace;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  transition: background 0.2s, color 0.2s;
+}
+a { color: inherit; }
+header {
+  padding: 1.2rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.back {
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text2);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: color 0.12s;
+}
+.back:hover { color: var(--text); }
+.logo {
+  font-family: 'Instrument Serif', serif;
+  font-size: 1.5rem;
+  color: var(--text);
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+.logo em { font-style: italic; color: var(--text2); }
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.theme-toggle {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text2);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.15s;
+  border-radius: 2px;
+}
+.theme-toggle:hover { background: var(--hover); color: var(--text); }
+.game-container {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 2.5rem 2rem 4rem;
+}
+.game-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 2rem;
+  font-weight: 400;
+  margin-bottom: 0.4rem;
+}
+.game-subtitle {
+  font-size: 0.7rem;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: 2rem;
+}
+.btn {
+  background: var(--text);
+  color: var(--bg);
+  border: none;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.6rem 1.4rem;
+  cursor: pointer;
+  transition: opacity 0.12s;
+  border-radius: 2px;
+}
+.btn:hover { opacity: 0.8; }
+.btn-outline {
+  background: none;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-outline:hover { background: var(--hover); }
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.7rem;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.status-val {
+  color: var(--text);
+  font-weight: 500;
+}
+.msg {
+  font-size: 0.85rem;
+  color: var(--text2);
+  margin: 1.5rem 0;
+  letter-spacing: 0.05em;
+  min-height: 1.5rem;
+}
+.msg.win { color: var(--green); }
+.msg.lose { color: var(--red); }

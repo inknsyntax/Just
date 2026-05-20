@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flappy Bird — Just.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<style>
+  canvas { display: block; margin: 0 auto; border: 1px solid var(--border); cursor: pointer; }
+</style>
+</head>
+<body>
+<header>
+  <a href="../index.html" class="back">← Back</a>
+  <a href="../index.html" class="logo">Just<em>.</em></a>
+  <div class="header-right">
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">Dark</button>
+  </div>
+</header>
+
+<div class="game-container">
+  <div class="game-title">Flappy Bird</div>
+  <div class="status-bar">
+    <span>Score</span><span class="status-val" id="score">0</span>
+    <span>Best</span><span class="status-val" id="best">0</span>
+  </div>
+
+  <canvas id="c" width="380" height="480"></canvas>
+  <div style="text-align:center;margin-top:0.6rem;font-size:0.65rem;color:var(--text2);letter-spacing:0.1em;text-transform:uppercase">Click, tap, or press space</div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W=380, H=480;
+const GRAV=0.45, JUMP=-8, PIPE_W=52, GAP=140, PIPE_SPEED=2.4;
+let bird, pipes, score, best=0, phase='idle', frame;
+
+function reset(){
+  bird={x:80,y:H/2,vy:0,r:14};
+  pipes=[];
+  score=0;
+  document.getElementById('score').textContent=0;
+}
+
+function flap(){
+  if(phase==='idle'||phase==='over'){
+    reset(); phase='play';
+    if(frame) cancelAnimationFrame(frame);
+    loop();
+  } else if(phase==='play'){
+    bird.vy=JUMP;
+  }
+}
+
+function loop(){
+  update(); draw();
+  frame=requestAnimationFrame(loop);
+}
+
+function update(){
+  bird.vy+=GRAV; bird.y+=bird.vy;
+  // Add pipes
+  if(pipes.length===0||(pipes[pipes.length-1].x<W-220)){
+    const top=60+Math.random()*(H-GAP-120);
+    pipes.push({x:W,top,bot:top+GAP});
+  }
+  pipes.forEach(p=>p.x-=PIPE_SPEED);
+  pipes=pipes.filter(p=>p.x>-PIPE_W-10);
+  // Score
+  pipes.forEach(p=>{
+    if(!p.scored&&p.x+PIPE_W<bird.x){p.scored=true;score++;document.getElementById('score').textContent=score;}
+  });
+  // Collision
+  if(bird.y+bird.r>H||bird.y-bird.r<0){die();return;}
+  for(const p of pipes){
+    if(bird.x+bird.r>p.x&&bird.x-bird.r<p.x+PIPE_W){
+      if(bird.y-bird.r<p.top||bird.y+bird.r>p.bot){die();return;}
+    }
+  }
+}
+
+function die(){
+  phase='over';
+  if(score>best){best=score;document.getElementById('best').textContent=best;}
+  cancelAnimationFrame(frame);
+  draw();
+}
+
+function draw(){
+  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+  const bg = isDark?'#141310':'#f5f2eb';
+  const pipe = isDark?'#2e2c28':'#d8d5cc';
+  const pipeInner = isDark?'#1c1a17':'#eceadf';
+  const birdCol = isDark?'#e8e4d9':'#1a1814';
+  const textCol = isDark?'#f0ede4':'#1a1814';
+  const mutedCol = isDark?'#9a9690':'#6b6860';
+
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  // Pipes
+  pipes.forEach(p=>{
+    ctx.fillStyle=pipe;
+    ctx.fillRect(p.x,0,PIPE_W,p.top);
+    ctx.fillRect(p.x,p.bot,PIPE_W,H-p.bot);
+    // Pipe caps
+    ctx.fillStyle=pipeInner;
+    ctx.fillRect(p.x+4,p.top-12,PIPE_W-8,12);
+    ctx.fillRect(p.x+4,p.bot,PIPE_W-8,12);
+  });
+
+  // Bird
+  ctx.save();
+  ctx.translate(bird.x,bird.y);
+  ctx.rotate(Math.max(-0.4,Math.min(0.6,bird.vy*0.05)));
+  ctx.fillStyle=birdCol;
+  ctx.beginPath(); ctx.ellipse(0,0,bird.r,bird.r*0.8,0,0,Math.PI*2); ctx.fill();
+  // Eye
+  ctx.fillStyle=bg;
+  ctx.beginPath(); ctx.arc(6,-4,4,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=birdCol;
+  ctx.beginPath(); ctx.arc(7,-4,2,0,Math.PI*2); ctx.fill();
+  // Wing
+  ctx.fillStyle=bg;
+  ctx.globalAlpha=0.3;
+  ctx.beginPath(); ctx.ellipse(-4,4,8,4,0.3,0,Math.PI*2); ctx.fill();
+  ctx.globalAlpha=1;
+  ctx.restore();
+
+  // Overlay text
+  if(phase==='idle'){
+    ctx.fillStyle=textCol;
+    ctx.font="500 1rem 'DM Mono', monospace";
+    ctx.textAlign='center';
+    ctx.fillText('Tap to start',W/2,H/2+50);
+  }
+  if(phase==='over'){
+    ctx.fillStyle=textCol;
+    ctx.font="500 1.4rem 'Instrument Serif', serif";
+    ctx.textAlign='center';
+    ctx.fillText('Game over',W/2,H/2-20);
+    ctx.font="400 0.8rem 'DM Mono', monospace";
+    ctx.fillStyle=mutedCol;
+    ctx.fillText('Tap to play again',W/2,H/2+15);
+  }
+}
+
+canvas.addEventListener('click', flap);
+canvas.addEventListener('touchstart', e=>{e.preventDefault();flap();},{passive:false});
+document.addEventListener('keydown', e=>{if(e.key===' '||e.key==='ArrowUp'){e.preventDefault();flap();}});
+
+const saved = localStorage.getItem('just-theme');
+if (saved === 'dark') { document.documentElement.setAttribute('data-theme','dark'); document.getElementById('themeBtn').textContent='Light'; }
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+  if(isDark){document.documentElement.removeAttribute('data-theme');document.getElementById('themeBtn').textContent='Dark';localStorage.setItem('just-theme','light');}
+  else{document.documentElement.setAttribute('data-theme','dark');document.getElementById('themeBtn').textContent='Light';localStorage.setItem('just-theme','dark');}
+  draw();
+}
+
+reset(); draw();
+</script>
+</body>
+</html>

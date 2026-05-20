@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snake — Just.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<style>
+  canvas {
+    display: block;
+    margin: 0 auto;
+    border: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .controls {
+    display: none;
+    grid-template-columns: repeat(3, 3rem);
+    gap: 4px;
+    justify-content: center;
+    margin-top: 1rem;
+  }
+  .dpad {
+    width: 3rem; height: 3rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    cursor: pointer;
+    border-radius: 2px;
+    user-select: none;
+  }
+  .dpad:active { background: var(--hover); }
+  @media (pointer: coarse) { .controls { display: grid; } }
+</style>
+</head>
+<body>
+<header>
+  <a href="../index.html" class="back">← Back</a>
+  <a href="../index.html" class="logo">Just<em>.</em></a>
+  <div class="header-right">
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">Dark</button>
+  </div>
+</header>
+
+<div class="game-container">
+  <div class="game-title">Snake</div>
+  <div class="status-bar">
+    <span>Score</span><span class="status-val" id="score">0</span>
+    <span>Best</span><span class="status-val" id="best">0</span>
+  </div>
+
+  <canvas id="c" width="400" height="400"></canvas>
+
+  <div class="controls">
+    <div></div><div class="dpad" ontouchstart="dir('UP')">↑</div><div></div>
+    <div class="dpad" ontouchstart="dir('LEFT')">←</div>
+    <div class="dpad" ontouchstart="dir('DOWN')">↓</div>
+    <div class="dpad" ontouchstart="dir('RIGHT')">→</div>
+  </div>
+
+  <div class="msg" id="msg"></div>
+  <div style="text-align:center;margin-top:1rem">
+    <button class="btn btn-outline" onclick="newGame()">Restart</button>
+  </div>
+  <div style="text-align:center;margin-top:0.5rem;font-size:0.65rem;color:var(--text2);letter-spacing:0.1em;text-transform:uppercase">Arrow keys to move · Space to start</div>
+</div>
+
+<script>
+const GRID = 20, CELL = 20;
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let snake, food, direction, nextDir, score, best=0, running=false, interval;
+
+function newGame(){
+  snake = [{x:10,y:10},{x:9,y:10},{x:8,y:10}];
+  direction = {x:1,y:0}; nextDir = {x:1,y:0};
+  score = 0;
+  placeFood();
+  document.getElementById('score').textContent = 0;
+  document.getElementById('msg').textContent = 'Press space or tap Restart to begin';
+  document.getElementById('msg').className = 'msg';
+  if(interval) clearInterval(interval);
+  running = false;
+  draw();
+}
+
+function start(){
+  if(running) return;
+  running = true;
+  document.getElementById('msg').textContent = '';
+  interval = setInterval(tick, 120);
+}
+
+function placeFood(){
+  do { food = {x:Math.floor(Math.random()*GRID), y:Math.floor(Math.random()*GRID)}; }
+  while(snake.some(s=>s.x===food.x&&s.y===food.y));
+}
+
+function tick(){
+  direction = {...nextDir};
+  const head = {x:snake[0].x+direction.x, y:snake[0].y+direction.y};
+  if(head.x<0||head.x>=GRID||head.y<0||head.y>=GRID||snake.some(s=>s.x===head.x&&s.y===head.y)){
+    clearInterval(interval); running=false;
+    document.getElementById('msg').textContent = `Game over. Score: ${score}`;
+    document.getElementById('msg').className = 'msg lose';
+    if(score>best){best=score;document.getElementById('best').textContent=best;}
+    return;
+  }
+  snake.unshift(head);
+  if(head.x===food.x&&head.y===food.y){
+    score++; document.getElementById('score').textContent=score; placeFood();
+  } else { snake.pop(); }
+  draw();
+}
+
+function draw(){
+  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+  const bg = isDark ? '#141310' : '#f5f2eb';
+  const snakeColor = isDark ? '#e8e4d9' : '#1a1814';
+  const foodColor = isDark ? '#cc5050' : '#b03030';
+  const gridColor = isDark ? '#1c1a17' : '#eceadf';
+  ctx.fillStyle = bg; ctx.fillRect(0,0,400,400);
+  // Grid dots
+  ctx.fillStyle = gridColor;
+  for(let x=0;x<GRID;x++) for(let y=0;y<GRID;y++){
+    ctx.fillRect(x*CELL+CELL/2-1,y*CELL+CELL/2-1,2,2);
+  }
+  // Food
+  ctx.fillStyle = foodColor;
+  ctx.fillRect(food.x*CELL+2,food.y*CELL+2,CELL-4,CELL-4);
+  // Snake
+  snake.forEach((s,i)=>{
+    ctx.fillStyle = i===0 ? snakeColor : (isDark ? '#9a9690' : '#6b6860');
+    ctx.fillRect(s.x*CELL+1,s.y*CELL+1,CELL-2,CELL-2);
+  });
+}
+
+function dir(d){
+  if(!running){start();return;}
+  const map = {UP:{x:0,y:-1},DOWN:{x:0,y:1},LEFT:{x:-1,y:0},RIGHT:{x:1,y:0}};
+  const nd = map[d];
+  if(nd.x !== -direction.x || nd.y !== -direction.y) nextDir = nd;
+}
+
+document.addEventListener('keydown', e=>{
+  if(e.key===' '||e.key==='Enter'){e.preventDefault();start();return;}
+  const map = {'ArrowUp':'UP','ArrowDown':'DOWN','ArrowLeft':'LEFT','ArrowRight':'RIGHT'};
+  if(map[e.key]){e.preventDefault();dir(map[e.key]);}
+});
+
+const saved = localStorage.getItem('just-theme');
+if (saved === 'dark') { document.documentElement.setAttribute('data-theme','dark'); document.getElementById('themeBtn').textContent='Light'; }
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+  if(isDark){document.documentElement.removeAttribute('data-theme');document.getElementById('themeBtn').textContent='Dark';localStorage.setItem('just-theme','light');}
+  else{document.documentElement.setAttribute('data-theme','dark');document.getElementById('themeBtn').textContent='Light';localStorage.setItem('just-theme','dark');}
+  draw();
+}
+
+newGame();
+</script>
+</body>
+</html>

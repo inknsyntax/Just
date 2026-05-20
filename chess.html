@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chess — Just.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<style>
+  .board-wrap { overflow-x: auto; }
+  .board {
+    display: grid;
+    grid-template-columns: repeat(8, 56px);
+    grid-template-rows: repeat(8, 56px);
+    width: fit-content;
+    margin: 0 auto;
+    border: 1px solid var(--border);
+  }
+  .sq {
+    width: 56px; height: 56px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.1rem;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    transition: background 0.1s;
+  }
+  .sq.light { background: #f0ede4; }
+  .sq.dark { background: #b0a898; }
+  [data-theme="dark"] .sq.light { background: #2e2a24; }
+  [data-theme="dark"] .sq.dark { background: #1c1a16; }
+  .sq.selected { outline: 3px solid #c0a050; outline-offset: -3px; }
+  .sq.possible { background: rgba(80,160,80,0.35) !important; }
+  .sq.possible::after { content:''; position:absolute; width:16px;height:16px;border-radius:50%;background:rgba(50,120,50,0.4); }
+  .sq.in-check { background: rgba(200,50,50,0.4) !important; }
+  .coords {
+    display: flex;
+    width: fit-content;
+    margin: 0 auto;
+    gap: 0;
+  }
+  .coord-row { display:flex; flex-direction:column; gap:0; justify-content:space-around; }
+  .coord { width:16px; height:56px; display:flex; align-items:center; justify-content:center; font-size:0.55rem; color:var(--text2); letter-spacing:0; }
+</style>
+</head>
+<body>
+<header>
+  <a href="../index.html" class="back">← Back</a>
+  <a href="../index.html" class="logo">Just<em>.</em></a>
+  <div class="header-right">
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">Dark</button>
+  </div>
+</header>
+
+<div class="game-container">
+  <div class="game-title">Chess</div>
+  <div class="game-subtitle">Pass the device · Two players</div>
+
+  <div class="status-bar">
+    <span>Turn</span><span class="status-val" id="turnInd">White</span>
+    <span id="checkLabel" style="display:none;color:var(--red)">CHECK</span>
+  </div>
+
+  <div class="board-wrap">
+    <div class="board" id="board"></div>
+  </div>
+
+  <div class="msg" id="msg"></div>
+
+  <div style="margin-top:1rem;text-align:center">
+    <button class="btn btn-outline" onclick="newGame()">New Game</button>
+  </div>
+</div>
+
+<script>
+// Piece: uppercase=white, lowercase=black
+// K=king, Q=queen, R=rook, B=bishop, N=knight, P=pawn
+
+const INIT = [
+  ['r','n','b','q','k','b','n','r'],
+  ['p','p','p','p','p','p','p','p'],
+  [null,null,null,null,null,null,null,null],
+  [null,null,null,null,null,null,null,null],
+  [null,null,null,null,null,null,null,null],
+  [null,null,null,null,null,null,null,null],
+  ['P','P','P','P','P','P','P','P'],
+  ['R','N','B','Q','K','B','N','R']
+];
+
+const GLYPHS = {
+  'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙',
+  'k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟'
+};
+
+let board, turn, selected, possible, enPassant, castling, over;
+
+function newGame(){
+  board = INIT.map(r=>[...r]);
+  turn = 'w'; selected = null; possible = []; enPassant = null;
+  castling = {wK:true,wR:[true,true],bK:true,bR:[true,true]};
+  over = false;
+  document.getElementById('msg').textContent='';
+  document.getElementById('msg').className='msg';
+  document.getElementById('checkLabel').style.display='none';
+  render();
+}
+
+function isWhite(p){ return p && p === p.toUpperCase(); }
+function isBlack(p){ return p && p === p.toLowerCase(); }
+function owner(p){ return p ? (isWhite(p)?'w':'b') : null; }
+function enemy(p, t){ return p && owner(p) !== t; }
+
+function getMoves(r, c, b, t, forCheck=false){
+  const p = b[r][c];
+  if(!p) return [];
+  const moves = [];
+  const add = (nr, nc) => {
+    if(nr<0||nr>7||nc<0||nc>7) return;
+    if(owner(b[nr][nc])===t) return;
+    moves.push([nr,nc]);
+  };
+  const slide = (dr, dc) => {
+    let nr=r+dr, nc=c+dc;
+    while(nr>=0&&nr<8&&nc>=0&&nc<8){
+      if(b[nr][nc]){ if(enemy(b[nr][nc],t)) moves.push([nr,nc]); break; }
+      moves.push([nr,nc]); nr+=dr; nc+=dc;
+    }
+  };
+  const pt = p.toUpperCase();
+  if(pt==='P'){
+    const dir = t==='w'?-1:1;
+    if(!b[r+dir]?.[c]) { add(r+dir,c); if((t==='w'&&r===6)||(t==='b'&&r===1)) if(!b[r+2*dir]?.[c]) add(r+2*dir,c); }
+    [-1,1].forEach(dc=>{ if(c+dc>=0&&c+dc<8){ if(b[r+dir][c+dc]&&enemy(b[r+dir][c+dc],t)) add(r+dir,c+dc); if(enPassant&&enPassant[0]===r+dir&&enPassant[1]===c+dc) moves.push([r+dir,c+dc]); } });
+  } else if(pt==='N'){
+    [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(([dr,dc])=>add(r+dr,c+dc));
+  } else if(pt==='B'){ [[-1,-1],[-1,1],[1,-1],[1,1]].forEach(([dr,dc])=>slide(dr,dc)); }
+  else if(pt==='R'){ [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dr,dc])=>slide(dr,dc)); }
+  else if(pt==='Q'){ [[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]].forEach(([dr,dc])=>slide(dr,dc)); }
+  else if(pt==='K'){
+    [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]].forEach(([dr,dc])=>add(r+dr,c+dc));
+    if(!forCheck){
+      const kr = t==='w'?7:0;
+      if(t==='w'&&castling.wK&&castling.wR[1]&&!b[kr][5]&&!b[kr][6]&&!isAttacked(kr,4,b,t)&&!isAttacked(kr,5,b,t)&&!isAttacked(kr,6,b,t)) moves.push([kr,6]);
+      if(t==='w'&&castling.wK&&castling.wR[0]&&!b[kr][3]&&!b[kr][2]&&!b[kr][1]&&!isAttacked(kr,4,b,t)&&!isAttacked(kr,3,b,t)&&!isAttacked(kr,2,b,t)) moves.push([kr,2]);
+      if(t==='b'&&castling.bK&&castling.bR[1]&&!b[kr][5]&&!b[kr][6]&&!isAttacked(kr,4,b,t)&&!isAttacked(kr,5,b,t)&&!isAttacked(kr,6,b,t)) moves.push([kr,6]);
+      if(t==='b'&&castling.bK&&castling.bR[0]&&!b[kr][3]&&!b[kr][2]&&!b[kr][1]&&!isAttacked(kr,4,b,t)&&!isAttacked(kr,3,b,t)&&!isAttacked(kr,2,b,t)) moves.push([kr,2]);
+    }
+  }
+  if(!forCheck) return moves.filter(([nr,nc])=>!leavesInCheck(r,c,nr,nc,b,t));
+  return moves;
+}
+
+function leavesInCheck(r,c,nr,nc,b,t){
+  const nb=b.map(row=>[...row]);
+  if(enPassant&&nb[r][c].toUpperCase()==='P'&&nr===enPassant[0]&&nc===enPassant[1]){
+    const capR=t==='w'?nr+1:nr-1; nb[capR][nc]=null;
+  }
+  nb[nr][nc]=nb[r][c]; nb[r][c]=null;
+  return inCheck(nb,t);
+}
+
+function inCheck(b, t){
+  let kr=-1,kc=-1;
+  const king=t==='w'?'K':'k';
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++) if(b[r][c]===king){kr=r;kc=c;}
+  if(kr===-1) return false;
+  return isAttacked(kr,kc,b,t);
+}
+
+function isAttacked(r,c,b,t){
+  const opp=t==='w'?'b':'w';
+  for(let nr=0;nr<8;nr++) for(let nc=0;nc<8;nc++){
+    if(owner(b[nr][nc])===opp){ if(getMoves(nr,nc,b,opp,true).some(([mr,mc])=>mr===r&&mc===c)) return true; }
+  }
+  return false;
+}
+
+function hasAnyMove(b,t){
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++) if(owner(b[r][c])===t) if(getMoves(r,c,b,t).length) return true;
+  return false;
+}
+
+function click(r,c){
+  if(over) return;
+  if(selected){
+    const [sr,sc]=selected;
+    if(possible.some(([mr,mc])=>mr===r&&mc===c)){
+      doMove(sr,sc,r,c); selected=null; possible=[];
+    } else if(owner(board[r][c])===turn){
+      selected=[r,c]; possible=getMoves(r,c,board,turn);
+    } else { selected=null; possible=[]; }
+  } else {
+    if(owner(board[r][c])===turn){ selected=[r,c]; possible=getMoves(r,c,board,turn); }
+  }
+  render();
+}
+
+function doMove(r,c,nr,nc){
+  const p=board[r][c];
+  const pt=p.toUpperCase();
+  // En passant capture
+  if(pt==='P'&&enPassant&&nr===enPassant[0]&&nc===enPassant[1]){
+    const capR=turn==='w'?nr+1:nr-1; board[capR][nc]=null;
+  }
+  // Castling
+  const kr=turn==='w'?7:0;
+  if(pt==='K'&&Math.abs(nc-c)===2){
+    if(nc===6){board[kr][5]=board[kr][7];board[kr][7]=null;}
+    else{board[kr][3]=board[kr][0];board[kr][0]=null;}
+  }
+  // Update castling rights
+  if(pt==='K'){if(turn==='w')castling.wK=false;else castling.bK=false;}
+  if(pt==='R'){if(r===7){if(c===7)castling.wR[1]=false;if(c===0)castling.wR[0]=false;} if(r===0){if(c===7)castling.bR[1]=false;if(c===0)castling.bR[0]=false;} }
+  // En passant setup
+  enPassant=null;
+  if(pt==='P'&&Math.abs(nr-r)===2) enPassant=[(r+nr)/2,c];
+  board[nr][nc]=p; board[r][c]=null;
+  // Pawn promotion
+  if(pt==='P'&&(nr===0||nr===7)) board[nr][nc]=turn==='w'?'Q':'q';
+  // Switch turn
+  const next=turn==='w'?'b':'w';
+  const check=inCheck(board,next);
+  const anyMove=hasAnyMove(board,next);
+  if(!anyMove){
+    over=true;
+    const msg=document.getElementById('msg');
+    if(check){msg.textContent=`Checkmate. ${turn==='w'?'White':'Black'} wins.`;msg.className='msg win';}
+    else{msg.textContent='Stalemate. Draw.';msg.className='msg';}
+  }
+  document.getElementById('checkLabel').style.display=check&&!over?'':'none';
+  turn=next;
+  document.getElementById('turnInd').textContent=turn==='w'?'White':'Black';
+}
+
+function render(){
+  const b=document.getElementById('board');
+  const checkKing=inCheck(board,turn);
+  let checkR=-1,checkC=-1;
+  if(checkKing){const king=turn==='w'?'K':'k';for(let r=0;r<8;r++) for(let c=0;c<8;c++) if(board[r][c]===king){checkR=r;checkC=c;}}
+  b.innerHTML='';
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const sq=document.createElement('div');
+    sq.className=`sq ${(r+c)%2===0?'light':'dark'}`;
+    if(selected&&selected[0]===r&&selected[1]===c) sq.classList.add('selected');
+    if(possible.some(([mr,mc])=>mr===r&&mc===c)) sq.classList.add('possible');
+    if(r===checkR&&c===checkC) sq.classList.add('in-check');
+    sq.textContent=board[r][c]?GLYPHS[board[r][c]]:'';
+    const rr=r,cc=c; sq.addEventListener('click',()=>click(rr,cc));
+    b.appendChild(sq);
+  }
+}
+
+const saved = localStorage.getItem('just-theme');
+if (saved === 'dark') { document.documentElement.setAttribute('data-theme','dark'); document.getElementById('themeBtn').textContent='Light'; }
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+  if(isDark){document.documentElement.removeAttribute('data-theme');document.getElementById('themeBtn').textContent='Dark';localStorage.setItem('just-theme','light');}
+  else{document.documentElement.setAttribute('data-theme','dark');document.getElementById('themeBtn').textContent='Light';localStorage.setItem('just-theme','dark');}
+  render();
+}
+
+newGame();
+</script>
+</body>
+</html>

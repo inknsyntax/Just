@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wordle — Just.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<style>
+  .board {
+    display: grid;
+    grid-template-rows: repeat(6, 1fr);
+    gap: 6px;
+    width: 280px;
+    height: 336px;
+    margin: 0 auto 1.5rem;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }
+  .tile {
+    border: 1.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Instrument Serif', serif;
+    font-size: 1.6rem;
+    font-weight: 400;
+    text-transform: uppercase;
+    color: var(--text);
+    background: var(--bg);
+    transition: border-color 0.1s;
+    position: relative;
+    border-radius: 2px;
+  }
+  .tile.filled { border-color: var(--text2); }
+  .tile.correct { background: var(--green); border-color: var(--green); color: #fff; }
+  .tile.present { background: var(--yellow); border-color: var(--yellow); color: #fff; }
+  .tile.absent { background: var(--tag); border-color: var(--tag); color: var(--text2); }
+  .tile.shake { animation: shake 0.3s; }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)}
+  }
+  .keyboard {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+  }
+  .kb-row { display: flex; gap: 5px; }
+  .key {
+    height: 3rem;
+    min-width: 2.2rem;
+    padding: 0 0.4rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    cursor: pointer;
+    color: var(--text);
+    transition: all 0.1s;
+    border-radius: 2px;
+    letter-spacing: 0.05em;
+  }
+  .key:hover { background: var(--hover); }
+  .key.wide { min-width: 3.8rem; font-size: 0.6rem; }
+  .key.correct { background: var(--green); border-color: var(--green); color: #fff; }
+  .key.present { background: var(--yellow); border-color: var(--yellow); color: #fff; }
+  .key.absent { background: var(--tag); border-color: var(--tag); color: var(--text2); }
+</style>
+</head>
+<body>
+<header>
+  <a href="../index.html" class="back">← Back</a>
+  <a href="../index.html" class="logo">Just<em>.</em></a>
+  <div class="header-right">
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">Dark</button>
+  </div>
+</header>
+
+<div class="game-container">
+  <div class="game-title">Wordle</div>
+  <div class="game-subtitle">Infinite · No daily limit · Guess the 5-letter word</div>
+
+  <div class="board" id="board"></div>
+  <div class="msg" id="msg"></div>
+
+  <div class="keyboard" id="keyboard">
+    <div class="kb-row" id="kb-row-0"></div>
+    <div class="kb-row" id="kb-row-1"></div>
+    <div class="kb-row" id="kb-row-2"></div>
+  </div>
+
+  <div style="text-align:center;margin-top:1.5rem">
+    <button class="btn btn-outline" onclick="newGame()">New Word</button>
+  </div>
+</div>
+
+<script>
+const WORDS = ['crane','brave','light','storm','piano','table','world','night','sugar','flame','glass','plant','stone','heart','cloud','blade','ghost','paint','water','earth','black','white','place','sound','magic','eagle','clock','bloom','smile','drink','space','field','bench','clean','cloth','dream','fence','front','grace','grand','green','grind','grove','guess','guide','harsh','honey','house','human','indie','input','jewel','joint','judge','kneel','knife','latch','layer','leash','lemon','level','light','liner','lodge','loose','lower','lucky','lunch','lyric','manor','maple','march','match','mayor','merit','might','mirth','model','money','month','moose','moral','mouse','music','naive','nerve','never','night','noble','north','noted','novel','nurse','nymph','occur','offer','often','olive','onion','optic','orbit','order','other','outer','oxide','ozone','paint','panel','panic','paper','party','patch','pause','peace','peach','pearl','penny','perch','phase','phone','photo','piano','picks','pilot','pitch','pixel','plain','plane','plant','plate','plaza','pluck','plumb','plume','plump','plunk','plush','point','poker','polar','poppy','porch','prank','press','price','pride','prime','print','prior','prize','probe','proxy','prude','prune','psalm','pulse','punch','pupil','purse','queen','quest','queue','quick','quill','quite','quota','quote','rabid','radar','radio','raise','rally','ranch','range','rapid','ratio','raven','reach','realm','rebel','rebus','refer','reign','relax','remix','repay','reply','rider','right','risky','rival','river','robin','rocky','roman','rough','round','route','royal','rugby','ruler','rural','saint','salad','sauce','scale','scene','scone','scope','score','scout','scrub','seize','sense','serve','seven','shake','shale','shall','shame','shape','shark','shawl','sheep','sheer','shelf','shell','shift','shirt','shock','shoot','shore','short','shout','siege','sight','silly','since','sixth','sixty','sized','skill','skimp','skirt','skull','slant','slash','slave','sleep','sleet','slept','slice','slide','slime','sling','sloth','slump','slunk','slurp','small','smash','smear','smell','smelt','smith','smock','smoke','snail','snake','snare','snark','sneak','sneer','sniff','snore','snort','snout','snowy','soapy','solar','solid','solve','sorry','south','space','spade','spare','spark','spasm','spawn','spear','speck','speed','spend','spice','spill','spine','spoke','spook','sport','spout','spray','spree','sprig','spunk','squad','squat','squid','stack','staff','stage','stain','stair','stake','stale','stall','stamp','stand','stank','stark','stave','steal','steam','steel','steep','steer','stern','stiff','sting','stink','stock','stomp','stood','store','stork','story','stove','strap','straw','stray','strip','strum','strut','stuck','study','stump','stung','stunk','stunt','style','sugar','suite','sulky','sunny','super','surge','swamp','swarm','swear','sweat','sweep','sweet','swell','swept','swift','swing','swipe','swoop','sword','syrup','tabby','table','taffy','talon','tapir','tardy','tasty','taunt','tawny','teach','tense','tenth','tepid','thank','their','theme','there','thick','thief','thigh','thing','think','third','thorn','those','three','threw','throe','throw','thrum','thumb','thump','tiger','tight','timer','tipsy','title','today','token','tonic','tooth','topaz','total','touch','tough','towel','tower','toxic','track','trade','trail','trait','tramp','trash','trial','tribe','trick','tried','trout','trove','truce','truck','truly','trunk','trust','truth','tumor','tuner','tunic','tutor','twang','tweak','twill','twine','twirl','twist','tying','udder','ultra','umbra','uncle','uncut','unfit','unite','unity','until','upper','usher','usual','utter','uvula','vague','valor','valve','vapid','vault','vaunt','venom','venue','verge','verse','video','vigil','visor','vital','vixen','vocal','voice','voila','voter','vouch','vulva','wacky','waltz','waste','watch','weary','wedge','weigh','weird','whale','whack','wharf','wheat','wheel','where','which','while','whiff','whirl','white','whole','whose','wider','windy','witch','wrath','wreak','wreck','wring','wrist','wrong','wrote','yacht','yearn','yield','young','yours','zesty','zonal'];
+
+const ROWS = 6, COLS = 5;
+const KB_LAYOUT = [
+  ['Q','W','E','R','T','Y','U','I','O','P'],
+  ['A','S','D','F','G','H','J','K','L'],
+  ['Enter','Z','X','C','V','B','N','M','⌫']
+];
+
+let word, grid, currentRow, currentCol, gameOver;
+
+function newGame() {
+  word = WORDS[Math.floor(Math.random()*WORDS.length)].toUpperCase();
+  grid = Array(ROWS).fill(null).map(() => Array(COLS).fill(''));
+  currentRow = 0; currentCol = 0; gameOver = false;
+  renderBoard(); renderKeyboard();
+  document.getElementById('msg').textContent = '';
+  document.getElementById('msg').className = 'msg';
+}
+
+function renderBoard() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  for (let r = 0; r < ROWS; r++) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.id = `row-${r}`;
+    for (let c = 0; c < COLS; c++) {
+      const tile = document.createElement('div');
+      tile.className = 'tile' + (grid[r][c] ? ' filled' : '');
+      tile.id = `tile-${r}-${c}`;
+      tile.textContent = grid[r][c];
+      row.appendChild(tile);
+    }
+    board.appendChild(row);
+  }
+}
+
+function renderKeyboard() {
+  KB_LAYOUT.forEach((keys, ri) => {
+    const row = document.getElementById(`kb-row-${ri}`);
+    row.innerHTML = keys.map(k => {
+      const cls = getKeyClass(k);
+      const wide = k === 'Enter' || k === '⌫' ? ' wide' : '';
+      return `<button class="key${wide}${cls?' '+cls:''}" onclick="handleKey('${k}')">${k}</button>`;
+    }).join('');
+  });
+}
+
+function getKeyClass(k) {
+  if (k === 'Enter' || k === '⌫') return '';
+  let best = '';
+  for (let r = 0; r < currentRow; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (grid[r][c] === k) {
+        const tile = document.getElementById(`tile-${r}-${c}`);
+        if (tile.classList.contains('correct')) return 'correct';
+        if (tile.classList.contains('present')) best = 'present';
+        else if (!best) best = 'absent';
+      }
+    }
+  }
+  return best;
+}
+
+function handleKey(k) {
+  if (gameOver) return;
+  if (k === '⌫' || k === 'Backspace') {
+    if (currentCol > 0) { currentCol--; grid[currentRow][currentCol] = ''; updateTile(currentRow, currentCol); }
+    return;
+  }
+  if (k === 'Enter') { submitRow(); return; }
+  if (/^[A-Z]$/.test(k) && currentCol < COLS) {
+    grid[currentRow][currentCol] = k;
+    updateTile(currentRow, currentCol);
+    currentCol++;
+  }
+}
+
+function updateTile(r, c) {
+  const tile = document.getElementById(`tile-${r}-${c}`);
+  tile.textContent = grid[r][c];
+  tile.className = 'tile' + (grid[r][c] ? ' filled' : '');
+}
+
+function submitRow() {
+  if (currentCol < COLS) {
+    shakeRow(currentRow);
+    return;
+  }
+  const guess = grid[currentRow].join('');
+  const result = evaluate(guess, word);
+  result.forEach((state, c) => {
+    setTimeout(() => {
+      document.getElementById(`tile-${currentRow}-${c}`).className = `tile ${state}`;
+    }, c * 80);
+  });
+  setTimeout(() => {
+    const won = result.every(s => s === 'correct');
+    const msg = document.getElementById('msg');
+    if (won) { msg.textContent = 'Nicely done.'; msg.className = 'msg win'; gameOver = true; }
+    else if (currentRow === ROWS - 1) { msg.textContent = `The word was ${word}.`; msg.className = 'msg lose'; gameOver = true; }
+    currentRow++; currentCol = 0;
+    renderKeyboard();
+  }, COLS * 80 + 200);
+}
+
+function evaluate(guess, answer) {
+  const res = Array(COLS).fill('absent');
+  const answerArr = answer.split('');
+  const guessArr = guess.split('');
+  // Correct first
+  guessArr.forEach((l, i) => { if (l === answerArr[i]) { res[i] = 'correct'; answerArr[i] = null; guessArr[i] = null; } });
+  // Present
+  guessArr.forEach((l, i) => {
+    if (l === null) return;
+    const idx = answerArr.indexOf(l);
+    if (idx !== -1) { res[i] = 'present'; answerArr[idx] = null; }
+  });
+  return res;
+}
+
+function shakeRow(r) {
+  const row = document.getElementById(`row-${r}`);
+  row.querySelectorAll('.tile').forEach(t => { t.classList.add('shake'); setTimeout(() => t.classList.remove('shake'), 400); });
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') handleKey('Enter');
+  else if (e.key === 'Backspace') handleKey('⌫');
+  else if (/^[a-zA-Z]$/.test(e.key)) handleKey(e.key.toUpperCase());
+});
+
+const saved = localStorage.getItem('just-theme');
+if (saved === 'dark') { document.documentElement.setAttribute('data-theme','dark'); document.getElementById('themeBtn').textContent='Light'; }
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+  if(isDark){document.documentElement.removeAttribute('data-theme');document.getElementById('themeBtn').textContent='Dark';localStorage.setItem('just-theme','light');}
+  else{document.documentElement.setAttribute('data-theme','dark');document.getElementById('themeBtn').textContent='Light';localStorage.setItem('just-theme','dark');}
+}
+
+newGame();
+</script>
+</body>
+</html>

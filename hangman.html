@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hangman — Just.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<style>
+  .gallows {
+    display: flex;
+    justify-content: center;
+    margin: 1.5rem 0;
+  }
+  .gallows svg { opacity: 0.85; }
+  .word-display {
+    display: flex;
+    gap: 0.6rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 1.5rem 0;
+  }
+  .letter-box {
+    width: 2.2rem;
+    height: 2.8rem;
+    border-bottom: 2px solid var(--border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    font-family: 'Instrument Serif', serif;
+    font-size: 1.6rem;
+    padding-bottom: 0.2rem;
+    color: var(--text);
+    transition: border-color 0.2s;
+  }
+  .letter-box.revealed { border-color: var(--text2); }
+  .letter-box.wrong-reveal { color: var(--red); }
+  .keyboard {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    justify-content: center;
+    max-width: 440px;
+    margin: 0 auto 1.5rem;
+  }
+  .key {
+    width: 2.4rem;
+    height: 2.4rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    cursor: pointer;
+    text-transform: uppercase;
+    color: var(--text);
+    transition: all 0.1s;
+    border-radius: 2px;
+  }
+  .key:hover:not(:disabled) { background: var(--hover); }
+  .key:disabled { opacity: 0.3; cursor: default; }
+  .key.correct { background: var(--green); border-color: var(--green); color: #fff; }
+  .key.wrong { background: var(--tag); border-color: var(--border); color: var(--text2); }
+  .wrong-letters {
+    font-size: 0.7rem;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    text-align: center;
+    margin-bottom: 0.5rem;
+  }
+</style>
+</head>
+<body>
+<header>
+  <a href="../index.html" class="back">← Back</a>
+  <a href="../index.html" class="logo">Just<em>.</em></a>
+  <div class="header-right">
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">Dark</button>
+  </div>
+</header>
+
+<div class="game-container">
+  <div class="game-title">Hangman</div>
+  <div class="game-subtitle">Guess the word · <span id="remaining">6</span> wrong guesses left</div>
+
+  <div class="gallows">
+    <svg width="160" height="180" viewBox="0 0 160 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Gallows structure (always visible) -->
+      <line x1="20" y1="170" x2="140" y2="170" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <line x1="60" y1="170" x2="60" y2="10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <line x1="60" y1="10" x2="100" y2="10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <line x1="100" y1="10" x2="100" y2="30" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <!-- Body parts: head, body, left arm, right arm, left leg, right leg -->
+      <circle id="p-head" cx="100" cy="45" r="15" stroke="currentColor" stroke-width="2" style="display:none"/>
+      <line id="p-body" x1="100" y1="60" x2="100" y2="110" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none"/>
+      <line id="p-larm" x1="100" y1="75" x2="75" y2="100" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none"/>
+      <line id="p-rarm" x1="100" y1="75" x2="125" y2="100" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none"/>
+      <line id="p-lleg" x1="100" y1="110" x2="75" y2="145" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none"/>
+      <line id="p-rleg" x1="100" y1="110" x2="125" y2="145" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none"/>
+    </svg>
+  </div>
+
+  <div class="word-display" id="wordDisplay"></div>
+  <div class="wrong-letters" id="wrongLetters"></div>
+  <div class="msg" id="msg"></div>
+
+  <div class="keyboard" id="keyboard"></div>
+
+  <div style="text-align:center;margin-top:1rem">
+    <button class="btn btn-outline" onclick="newGame()">New Word</button>
+  </div>
+</div>
+
+<script>
+const WORDS = ['elephant','guitar','pyramid','castle','whisper','frozen','jungle','planet','rocket','mirror','canyon','bridge','voyage','lantern','diamond','thunder','penguin','crystal','horizon','compass','bamboo','forest','meadow','phantom','silver','cobalt','walrus','chimney','harvest','blossom','eclipse','marble','oyster','anchor','fiddle','goblin','helmet','ignite','jigsaw','kitten','locket','muffin','noodle','oblong','parrot','quartz','rabbit','saddle','toffee','umbra','velvet','walnut','xylophone','yellow','zipper','falcon','geyser','hickory','island','jacket','kernel','lemon','magnet','napkin','onion','pepper','quiver','radish','summit','turnip','violin','wicker'];
+
+const parts = ['p-head','p-body','p-larm','p-rarm','p-lleg','p-rleg'];
+let word, guessed, wrong;
+
+function newGame() {
+  word = WORDS[Math.floor(Math.random()*WORDS.length)].toUpperCase();
+  guessed = new Set();
+  wrong = 0;
+  render();
+}
+
+function guess(letter) {
+  if (guessed.has(letter) || isOver()) return;
+  guessed.add(letter);
+  if (!word.includes(letter)) wrong++;
+  render();
+}
+
+function isWon() { return [...word].every(l => guessed.has(l)); }
+function isOver() { return wrong >= 6 || isWon(); }
+
+function render() {
+  // Gallows
+  parts.forEach((id, i) => {
+    document.getElementById(id).style.display = i < wrong ? 'block' : 'none';
+  });
+  document.getElementById('remaining').textContent = 6 - wrong;
+
+  // Word
+  const display = document.getElementById('wordDisplay');
+  display.innerHTML = word.split('').map(l => {
+    const revealed = guessed.has(l);
+    const wrongReveal = !guessed.has(l) && wrong >= 6;
+    return `<div class="letter-box ${revealed?'revealed':''} ${wrongReveal?'wrong-reveal':''}">${revealed ? l : (wrongReveal ? l : '')}</div>`;
+  }).join('');
+
+  // Wrong letters
+  const wrongLetters = [...guessed].filter(l => !word.includes(l));
+  document.getElementById('wrongLetters').textContent = wrongLetters.length ? 'Wrong: ' + wrongLetters.join(' ') : '';
+
+  // Message
+  const msg = document.getElementById('msg');
+  if (isWon()) { msg.textContent = 'You got it.'; msg.className = 'msg win'; }
+  else if (wrong >= 6) { msg.textContent = `The word was ${word}.`; msg.className = 'msg lose'; }
+  else { msg.textContent = ''; msg.className = 'msg'; }
+
+  // Keyboard
+  const kb = document.getElementById('keyboard');
+  kb.innerHTML = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(l => {
+    const isGuessed = guessed.has(l);
+    const isCorrect = isGuessed && word.includes(l);
+    const isWrong = isGuessed && !word.includes(l);
+    return `<button class="key ${isCorrect?'correct':''} ${isWrong?'wrong':''}" ${isGuessed||isOver()?'disabled':''} onclick="guess('${l}')">${l}</button>`;
+  }).join('');
+}
+
+const saved = localStorage.getItem('just-theme');
+if (saved === 'dark') { document.documentElement.setAttribute('data-theme','dark'); document.getElementById('themeBtn').textContent='Light'; }
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+  if(isDark){document.documentElement.removeAttribute('data-theme');document.getElementById('themeBtn').textContent='Dark';localStorage.setItem('just-theme','light');}
+  else{document.documentElement.setAttribute('data-theme','dark');document.getElementById('themeBtn').textContent='Light';localStorage.setItem('just-theme','dark');}
+}
+
+document.addEventListener('keydown', e => {
+  const l = e.key.toUpperCase();
+  if (/^[A-Z]$/.test(l)) guess(l);
+});
+
+newGame();
+</script>
+</body>
+</html>

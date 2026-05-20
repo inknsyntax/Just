@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Just.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f2eb;
+    --bg2: #eceadf;
+    --text: #1a1814;
+    --text2: #6b6860;
+    --accent: #2b2926;
+    --card: #fff;
+    --border: #d8d5cc;
+    --hover: #f0ede4;
+    --tag: #e8e4d9;
+    --tag-text: #4a4840;
+  }
+  [data-theme="dark"] {
+    --bg: #141310;
+    --bg2: #1c1a17;
+    --text: #f0ede4;
+    --text2: #9a9690;
+    --accent: #e8e4d9;
+    --card: #201e1b;
+    --border: #2e2c28;
+    --hover: #272420;
+    --tag: #2a2820;
+    --tag-text: #b0ac9f;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    transition: background 0.2s, color 0.2s;
+  }
+  header {
+    padding: 2rem 3rem;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo {
+    font-family: 'Instrument Serif', serif;
+    font-size: 2.4rem;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .logo em {
+    font-style: italic;
+    color: var(--text2);
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+  .tagline {
+    font-size: 0.7rem;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
+  .theme-toggle {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    padding: 0.4rem 0.8rem;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s;
+    border-radius: 2px;
+  }
+  .theme-toggle:hover {
+    background: var(--hover);
+    color: var(--text);
+  }
+  .hero {
+    padding: 4rem 3rem 3rem;
+    max-width: 900px;
+  }
+  .hero h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    font-weight: 400;
+    line-height: 1.2;
+    color: var(--text);
+    margin-bottom: 1rem;
+  }
+  .hero h1 em {
+    font-style: italic;
+    color: var(--text2);
+  }
+  .hero p {
+    font-size: 0.8rem;
+    color: var(--text2);
+    line-height: 1.8;
+    max-width: 560px;
+    letter-spacing: 0.02em;
+  }
+  .games-section {
+    padding: 2rem 3rem 4rem;
+  }
+  .section-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--text2);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    max-width: 200px;
+  }
+  .games-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+  .game-card {
+    background: var(--bg);
+    padding: 1.8rem 1.5rem;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    transition: background 0.12s;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .game-card:hover {
+    background: var(--card);
+  }
+  .game-card:hover .arrow {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+  .game-icon {
+    font-size: 1.6rem;
+    line-height: 1;
+    filter: grayscale(0.3);
+  }
+  .game-name {
+    font-family: 'Instrument Serif', serif;
+    font-size: 1.3rem;
+    font-weight: 400;
+    color: var(--text);
+    line-height: 1.1;
+  }
+  .game-desc {
+    font-size: 0.65rem;
+    color: var(--text2);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    line-height: 1.5;
+  }
+  .game-tag {
+    display: inline-block;
+    background: var(--tag);
+    color: var(--tag-text);
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.5rem;
+    border-radius: 1px;
+    margin-top: auto;
+    align-self: flex-start;
+  }
+  .arrow {
+    position: absolute;
+    top: 1.2rem;
+    right: 1.2rem;
+    font-size: 1rem;
+    color: var(--text2);
+    opacity: 0;
+    transform: translate(-4px, 4px);
+    transition: all 0.15s;
+  }
+  .footer {
+    padding: 2rem 3rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.65rem;
+    color: var(--text2);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+  }
+  .footer-dot {
+    width: 3px;
+    height: 3px;
+    background: var(--text2);
+    border-radius: 50%;
+  }
+  @media (max-width: 600px) {
+    header, .hero, .games-section, .footer { padding-left: 1.5rem; padding-right: 1.5rem; }
+    .header-right .tagline { display: none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <a href="index.html" class="logo">Just<em>.</em></a>
+  <div class="header-right">
+    <span class="tagline">No accounts. No ads. No nonsense.</span>
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">Dark</button>
+  </div>
+</header>
+
+<div class="hero">
+  <h1>Games.<br><em>Just</em> games.</h1>
+  <p>Pick something. Play it. Leave whenever. No signup required, no leaderboard, no daily streak, no notification asking you to come back, no ad between every turn. Just the game.</p>
+</div>
+
+<section class="games-section">
+  <div class="section-label">Choose a game</div>
+  <div class="games-grid">
+    <a class="game-card" href="games/hangman.html">
+      <div class="game-icon">🪢</div>
+      <div class="game-name">Hangman</div>
+      <div class="game-desc">Guess the word, letter by letter</div>
+      <div class="game-tag">Solo</div>
+      <span class="arrow">↗</span>
+    </a>
+    <a class="game-card" href="games/tictactoe.html">
+      <div class="game-icon">⬜</div>
+      <div class="game-name">Tic-Tac-Toe</div>
+      <div class="game-desc">Three in a row</div>
+      <div class="game-tag">2 Players</div>
+      <span class="arrow">↗</span>
+    </a>
+    <a class="game-card" href="games/wordle.html">
+      <div class="game-icon">🟩</div>
+      <div class="game-name">Wordle</div>
+      <div class="game-desc">Infinite. No daily limit.</div>
+      <div class="game-tag">Solo</div>
+      <span class="arrow">↗</span>
+    </a>
+    <a class="game-card" href="games/blackjack.html">
+      <div class="game-icon">🃏</div>
+      <div class="game-name">Blackjack</div>
+      <div class="game-desc">Beat the dealer to 21</div>
+      <div class="game-tag">Solo</div>
+      <span class="arrow">↗</span>
+    </a>
+    <a class="game-card" href="games/solitaire.html">
+      <div class="game-icon">♠️</div>
+      <div class="game-name">Solitaire</div>
+      <div class="game-desc">Classic Klondike</div>
+      <div class="game-tag">Solo</div>
+      <span class="arrow">↗</span>
+    </a>
+    <a class="game-card" href="games/checkers.html">
+      <div class="game-icon">🔴</div>
+      <div class="game-name">Checkers</div>
+      <div class="game-desc">Jump and capture</div>
+      <div class="game-tag">2 Players</div>
+      <span class="arrow">↗</span>
+    </a>
+    <a class="game-card" href="games/chess.html">
+      <div class="game-icon">♟️</div>
+      <div class="game-name">Chess</div>
+      <div class="game-desc">The classic strategy game</div>
+      <div class="game-tag">2 Players</div>
+      <span class="arrow">↗</span>
+    </a>
+    <a class="game-card" href="games/snake.html">
+      <div class="game-icon">🐍</div>
+      <div class="game-name">Snake</div>
+      <div class="game-desc">Don't bite yourself</div>
+      <div class="game-tag">Solo</div>
+      <span class="arrow">↗</span>
+    </a>
+    <a class="game-card" href="games/flappybird.html">
+      <div class="game-icon">🐦</div>
+      <div class="game-name">Flappy Bird</div>
+      <div class="game-desc">Tap to fly, avoid the pipes</div>
+      <div class="game-tag">Solo</div>
+      <span class="arrow">↗</span>
+    </a>
+    <a class="game-card" href="games/minesweeper.html">
+      <div class="game-icon">💣</div>
+      <div class="game-name">Minesweeper</div>
+      <div class="game-desc">Don't hit the mines</div>
+      <div class="game-tag">Solo</div>
+      <span class="arrow">↗</span>
+    </a>
+    <a class="game-card" href="games/memory.html">
+      <div class="game-icon">🎴</div>
+      <div class="game-name">Memory</div>
+      <div class="game-desc">Match the pairs</div>
+      <div class="game-tag">Solo</div>
+      <span class="arrow">↗</span>
+    </a>
+    <a class="game-card" href="games/2048.html">
+      <div class="game-icon">🔢</div>
+      <div class="game-name">2048</div>
+      <div class="game-desc">Slide and merge the tiles</div>
+      <div class="game-tag">Solo</div>
+      <span class="arrow">↗</span>
+    </a>
+  </div>
+</section>
+
+<footer class="footer">
+  <span>Just.</span>
+  <div class="footer-dot"></div>
+  <span>No ads</span>
+  <div class="footer-dot"></div>
+  <span>No accounts</span>
+  <div class="footer-dot"></div>
+  <span>No nonsense</span>
+</footer>
+
+<script>
+  const saved = localStorage.getItem('just-theme');
+  if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.getElementById('themeBtn').textContent = 'Light';
+  }
+  function toggleTheme() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    if (isDark) {
+      document.documentElement.removeAttribute('data-theme');
+      document.getElementById('themeBtn').textContent = 'Dark';
+      localStorage.setItem('just-theme', 'light');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.getElementById('themeBtn').textContent = 'Light';
+      localStorage.setItem('just-theme', 'dark');
+    }
+  }
+</script>
+</body>
+</html>
